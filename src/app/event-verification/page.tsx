@@ -117,7 +117,7 @@ export default function EventVerificationDashboard() {
           // Update local state
           setTickets(prev => prev.map(ticket => 
             ticket.ticketNumber === ticketNumber 
-              ? { ...ticket, verified: true, verifiedAt: new Date().toISOString(), verifiedBy: session?.user?.email }
+              ? { ...ticket, verified: true, verifiedAt: new Date().toISOString(), verifiedBy: session?.user?.email || undefined }
               : ticket
           ))
           
@@ -135,7 +135,7 @@ export default function EventVerificationDashboard() {
               ...verifiedTicket,
               verified: true,
               verifiedAt: new Date().toISOString(),
-              verifiedBy: session?.user?.email
+              verifiedBy: session?.user?.email || undefined
             })
           }
 
