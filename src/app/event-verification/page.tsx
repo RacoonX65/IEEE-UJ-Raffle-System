@@ -72,7 +72,7 @@ export default function EventVerificationDashboard() {
 
   const fetchTickets = async () => {
     try {
-      const response = await fetch('/api/sheets')
+      const response = await fetch('/api/dashboard')
       if (response.ok) {
         const data = await response.json()
         setTickets(data.entries || [])

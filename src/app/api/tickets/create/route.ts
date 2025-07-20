@@ -12,10 +12,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, whatsapp, paymentMethod, seller, ticketPrice } = body
+    const { name, email, paymentMethod, seller, ticketPrice } = body
 
     // Validate required fields
-    if (!name || !email || !whatsapp || !paymentMethod || !seller) {
+    if (!name || !email || !paymentMethod || !seller) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Get current data to determine next ticket number
     const currentDataResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A:G',
+      range: 'A:F',
     })
 
     const rows = currentDataResponse.data.values || []
@@ -56,21 +56,20 @@ export async function POST(request: NextRequest) {
     })
 
     // Prepare row data to match your Google Sheet structure
-    // A: Timestamp, B: Name, C: Email, D: WhatsApp, E: Payment Method, F: Seller, G: Tracker Number
+    // A: Timestamp, B: Name, C: Email, D: Payment Method, E: Seller, F: Tracker Number
     const newRow = [
       timestamp,           // A: Timestamp
       name,               // B: Name
       email,              // C: Email
-      whatsapp,           // D: WhatsApp
-      paymentMethod,      // E: Payment Method
-      seller,             // F: Seller
-      nextTicketNumber    // G: Tracker Number
+      paymentMethod,      // D: Payment Method
+      seller,             // E: Seller
+      nextTicketNumber    // F: Tracker Number
     ]
 
     // Append the new row to the sheet
     const appendResponse = await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: 'A:G',
+      range: 'A:F',
       valueInputOption: 'RAW',
       requestBody: {
         values: [newRow],
