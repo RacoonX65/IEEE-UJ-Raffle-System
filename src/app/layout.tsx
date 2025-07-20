@@ -65,20 +65,7 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
-    ],
-    apple: [
-      { url: "/favicon.svg", sizes: "180x180", type: "image/svg+xml" },
-    ],
-    other: [
-      {
-        rel: "mask-icon",
-        url: "/favicon.svg",
-        color: "#6366f1",
-      },
-    ],
+    icon: { url: "/favicon.svg", type: "image/svg+xml" },
   },
   manifest: "/site.webmanifest",
 };
@@ -92,8 +79,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning={true}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="alternate icon" href="/favicon.ico" />
-        <link rel="mask-icon" href="/favicon.svg" color="#6366f1" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProvider>
