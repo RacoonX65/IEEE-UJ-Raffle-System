@@ -4,11 +4,17 @@ export interface TicketEntry {
   timestamp: string
   name: string // Changed from fullName to match dashboard
   email: string
-  whatsapp: string // Changed from whatsappNumber to match dashboard
   paymentMethod: string // Made more flexible
   seller: string // Changed from sellerName to match dashboard
   consentToEmail?: boolean
   ticketNumber: string // Made required
+  paymentStatus?: string
+  verificationNotes?: string
+  verified?: boolean
+  verifiedAt?: string
+  verifiedBy?: string
+  attended?: boolean // Track if attendee showed up at event
+  attendedAt?: string // Timestamp when attendee checked in
 }
 
 export interface TicketStats {
@@ -39,25 +45,44 @@ class GoogleSheetsService {
     try {
       const response = await this.sheets.spreadsheets.values.get({
         spreadsheetId: this.spreadsheetId,
-        range: 'A:I', // Extended range to include payment verification columns (H and I)
+        range: 'A:H', // Updated range to match new structure without WhatsApp
       })
 
       const rows = response.data.values || []
       const headers = rows[0] || []
       const dataRows = rows.slice(1)
 
-      const entries: TicketEntry[] = dataRows.map((row: any[], index: number) => ({
-        timestamp: row[0] || '', // Column A: Timestamp
-        name: row[1] || '', // Column B: Name
-        email: row[2] || '', // Column C: Email
-        whatsapp: row[3] || '', // Column D: WhatsApp
-        paymentMethod: row[4] || 'Cash', // Column E: Payment Method
-        seller: row[5] || '', // Column F: Seller
-        ticketNumber: row[6] || `IEEE-UJ-${String(index + 1).padStart(4, '0')}`, // Column G: Tracker Number
-        paymentStatus: row[7] || (row[4] === 'Cash' ? 'VERIFIED' : 'PENDING'), // Column H: Payment Status
-        verificationNotes: row[8] || '', // Column I: Verification Notes
-        consentToEmail: true, // Default to true since not in your sheet
-      }))
+      // Debug logging to see what we're getting from Google Sheets
+      console.log('Google Sheets Debug:')
+      console.log('Total rows:', rows.length)
+      console.log('Headers:', headers)
+      console.log('Data rows:', dataRows.length)
+      console.log('First few data rows:', dataRows.slice(0, 3))
+
+      const entries: TicketEntry[] = dataRows.map((row: any[], index: number) => {
+        // Check if ticket has been verified (payment status is VERIFIED)
+        const isVerified = row[6] === 'VERIFIED'
+        
+        // Check if attendee has checked in at the event (column I)
+        const hasAttended = row[8] === 'ATTENDED'
+        
+        return {
+          timestamp: row[0] || '', // Column A: Timestamp
+          name: row[1] || '', // Column B: Name
+          email: row[2] || '', // Column C: Email
+          paymentMethod: row[3] || 'Cash', // Column D: Payment Method
+          seller: row[4] || '', // Column E: Seller
+          ticketNumber: row[5] || `IEEE-UJ-${String(index + 1).padStart(4, '0')}`, // Column F: Ticket Number
+          paymentStatus: row[6] || (row[3] === 'Cash' ? 'VERIFIED' : 'PENDING'), // Column G: Payment Status
+          verificationNotes: row[7] || '', // Column H: Verification Notes
+          attended: hasAttended, // Column I: Attendance Status
+          attendedAt: hasAttended ? row[9] || undefined : undefined, // Column J: Attendance Timestamp
+          consentToEmail: true, // Default to true since not in your sheet
+          verified: isVerified, // Consider verified if payment status is VERIFIED
+          verifiedAt: isVerified ? row[0] : undefined, // Use timestamp as verification date if verified
+          verifiedBy: isVerified ? 'System' : undefined // Default verification agent
+        }
+      })
 
       // Calculate statistics
       const totalTickets = entries.length
@@ -86,7 +111,7 @@ class GoogleSheetsService {
   async exportToCsv(): Promise<string> {
     try {
       const stats = await this.getTicketData()
-      const headers = ['Timestamp', 'Full Name', 'Email', 'WhatsApp', 'Payment Method', 'Seller', 'Email Consent', 'Ticket Number']
+      const headers = ['Timestamp', 'Full Name', 'Email', 'Payment Method', 'Seller', 'Email Consent', 'Ticket Number']
       
       let csv = headers.join(',') + '\n'
       
@@ -95,7 +120,6 @@ class GoogleSheetsService {
           entry.timestamp,
           `"${entry.name}"`,
           entry.email,
-          entry.whatsapp,
           entry.paymentMethod,
           entry.seller,
           entry.consentToEmail ? 'Yes' : 'No',

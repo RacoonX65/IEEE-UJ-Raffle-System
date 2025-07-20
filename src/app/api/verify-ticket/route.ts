@@ -1,19 +1,19 @@
+import { google } from 'googleapis'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { google } from 'googleapis'
 
-// Google Sheets setup
+// Set up Google Sheets directly - matching the exact setup in sheets.ts
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   },
-  scopes: ['https://www.googleapis.com/spreadsheets'],
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 })
 
 const sheets = google.sheets({ version: 'v4', auth })
-const SHEET_ID = process.env.GOOGLE_SHEET_ID
+const SHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Get current sheet data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Sheet1!A:K', // Assuming columns A-K contain ticket data
+      range: 'Sheet1!A:H', // Use explicit sheet name for consistency
     })
 
     const rows = response.data.values || []
@@ -49,9 +49,10 @@ export async function POST(request: NextRequest) {
 
     // Find the ticket
     const headers = rows[0]
-    const ticketRowIndex = rows.findIndex((row, index) => 
-      index > 0 && row[5] === ticketNumber // Assuming column F (index 5) contains ticket numbers
-    )
+    const ticketRowIndex = rows.findIndex((row: string[], index: number) => {
+      if (index === 0) return false // Skip header row
+      return row[5] === ticketNumber // Column F (index 5) contains ticket number
+    })
 
     if (ticketRowIndex === -1) {
       return NextResponse.json({ 
@@ -62,39 +63,34 @@ export async function POST(request: NextRequest) {
 
     const ticketRow = rows[ticketRowIndex]
     
-    // Check if ticket is already verified
-    const verifiedColumnIndex = headers.findIndex(header => 
-      header.toLowerCase().includes('verified') || header.toLowerCase().includes('checked')
-    )
-    
-    if (verifiedColumnIndex !== -1 && ticketRow[verifiedColumnIndex] === 'TRUE') {
+    // Check if ticket is already verified - Column H (index 7) for verification status
+    // No need to check if column exists, we know it's at index 7
+    if (ticketRow && ticketRow.length > 7 && ticketRow[7] === 'VERIFIED') {
       return NextResponse.json({ 
         success: false, 
         message: 'Ticket already verified' 
       }, { status: 409 })
     }
 
-    // Check payment status
-    const paymentStatusIndex = headers.findIndex(header => 
-      header.toLowerCase().includes('payment') && header.toLowerCase().includes('status')
-    )
-    
-    if (paymentStatusIndex !== -1 && ticketRow[paymentStatusIndex] !== 'VERIFIED') {
+    // Check payment status - Column G (index 6) for payment status
+    // Check if payment has been verified
+    if (ticketRow && ticketRow.length > 6 && ticketRow[6] !== 'VERIFIED') {
       return NextResponse.json({ 
         success: false, 
         message: 'Payment not verified. Cannot admit entry.' 
       }, { status: 403 })
     }
 
-    // Update verification status in Google Sheets
-    const updateRange = `Sheet1!${String.fromCharCode(65 + Math.max(headers.length, 10))}${ticketRowIndex + 1}:${String.fromCharCode(65 + Math.max(headers.length, 12))}${ticketRowIndex + 1}`
+    // Update verification status in Google Sheets - use specific columns
+    // Need to account for header row and 1-indexed rows in Google Sheets
+    const updateRange = `Sheet1!H${ticketRowIndex + 2}`
     
     await sheets.spreadsheets.values.update({
       spreadsheetId: SHEET_ID,
       range: updateRange,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [['TRUE', verifiedAt, verifiedBy]] // Verified, VerifiedAt, VerifiedBy
+        values: [['VERIFIED']] // Mark as verified
       },
     })
 
@@ -139,7 +135,7 @@ export async function GET(request: NextRequest) {
     // Get verification statistics
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Sheet1!A:K',
+      range: 'Sheet1!A:H', // Use explicit sheet name for consistency
     })
 
     const rows = response.data.values || []
@@ -154,14 +150,13 @@ export async function GET(request: NextRequest) {
     const headers = rows[0]
     const dataRows = rows.slice(1)
     
-    const verifiedColumnIndex = headers.findIndex(header => 
-      header.toLowerCase().includes('verified') || header.toLowerCase().includes('checked')
-    )
+    // Column H (index 7) has verification status
+    const verifiedColumnIndex = 7
     
     const totalTickets = dataRows.length
-    const verifiedTickets = verifiedColumnIndex !== -1 
-      ? dataRows.filter(row => row[verifiedColumnIndex] === 'TRUE').length 
-      : 0
+    const verifiedTickets = dataRows.filter((row: string[]) => 
+      row.length > verifiedColumnIndex && row[verifiedColumnIndex] === 'VERIFIED'
+    ).length
     const pendingVerification = totalTickets - verifiedTickets
 
     return NextResponse.json({

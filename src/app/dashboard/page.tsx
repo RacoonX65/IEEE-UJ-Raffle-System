@@ -368,9 +368,6 @@ export default function EnhancedDashboard() {
                       Buyer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-purple-200 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-purple-200 uppercase tracking-wider">
                       Seller
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-purple-200 uppercase tracking-wider">
@@ -396,12 +393,6 @@ export default function EnhancedDashboard() {
                         <div>
                           <div className="text-white font-medium">{entry.name}</div>
                           <div className="text-purple-300 text-sm">{entry.email}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-purple-300 text-sm">
-                          <Phone className="h-4 w-4 mr-1" />
-                          {entry.whatsapp}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

@@ -39,11 +39,10 @@ export default function TicketSearchFilter({ tickets, onFilteredTickets }: Ticke
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       filtered = filtered.filter(ticket => 
-        ticket.name.toLowerCase().includes(search) ||
-        ticket.email.toLowerCase().includes(search) ||
-        ticket.ticketNumber.toLowerCase().includes(search) ||
-        ticket.whatsapp.includes(search) ||
-        ticket.seller.toLowerCase().includes(search)
+        ticket.name?.toLowerCase().includes(search) ||
+        ticket.email?.toLowerCase().includes(search) ||
+        ticket.ticketNumber?.toLowerCase().includes(search) ||
+        ticket.seller?.toLowerCase().includes(search)
       )
     }
 

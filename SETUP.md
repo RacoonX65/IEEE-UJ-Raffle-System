@@ -104,12 +104,12 @@ Contact: [Your contact information]
 
 ## Step 6: Configure Environment Variables
 
-Update your `.env.local` file with the following:
+Create a `.env.local` file with the following:
 
 ```env
 # NextAuth Configuration
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here-change-in-production
+NEXTAUTH_SECRET=your-strong-random-secret-key
 
 # Google OAuth Configuration (for admin dashboard)
 GOOGLE_CLIENT_ID=your-google-oauth-client-id
@@ -117,11 +117,28 @@ GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 
 # Google Sheets Configuration
 GOOGLE_SHEETS_SPREADSHEET_ID=your-spreadsheet-id-from-step-2
-GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account-email
-GOOGLE_PRIVATE_KEY="your-private-key-from-json-file"
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account-email@project.iam.gserviceaccount.com
+
+# IMPORTANT: For GOOGLE_PRIVATE_KEY, add the actual private key content from your JSON file
+# The key should be enclosed in quotes, and any newlines in the key must be represented as \n
+# Email Configuration (for Brevo/Sendinblue)
+BREVO_API_KEY=your-brevo-api-key
+EMAIL_FROM_NAME=IEEE UJ Raffle System
+EMAIL_FROM_ADDRESS=noreply@ieee-uj.org
 
 # Admin Email Addresses (comma-separated)
-ADMIN_EMAILS=judas@example.com,adore@example.com,sino@example.com,andani@example.com
+ADMIN_EMAILS=admin1@example.com,admin2@example.com
+```
+
+### Security Best Practices for Service Account Keys:
+
+1. **NEVER commit `.env.local` or any other file containing secrets to Git**
+2. **NEVER share your service account JSON key file with unauthorized parties**
+3. Use proper environment variable handling for the private key:
+
+```javascript
+// Example of properly handling the GOOGLE_PRIVATE_KEY in your code
+const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n')
 ```
 
 ### Getting Google OAuth Credentials:

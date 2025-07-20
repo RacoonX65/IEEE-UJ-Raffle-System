@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Get current data to find the ticket
     const currentDataResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A:I', // Extended range to include payment verification columns
+      range: 'A:H', // Updated range to match current structure
     })
 
     const rows = currentDataResponse.data.values || []
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const dataRows = rows.slice(1)
 
     // Find the row with the matching ticket number
-    const ticketRowIndex = dataRows.findIndex(row => row[6] === ticketNumber) // Column G is ticket number
+    const ticketRowIndex = dataRows.findIndex(row => row[5] === ticketNumber) // Column F is ticket number
 
     if (ticketRowIndex === -1) {
       return NextResponse.json(
@@ -55,24 +55,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the row with payment verification info
-    // Add payment status (Column H) and verification notes (Column I)
+    // Add payment status (Column G) and verification notes (Column H)
     const rowNumber = ticketRowIndex + 2 // +1 for header, +1 for 1-based indexing
     
-    // Update payment status column (H)
+    // Update payment status column (G)
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `H${rowNumber}`,
+      range: `G${rowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
         values: [[status === 'verified' ? 'VERIFIED' : 'REJECTED']],
       },
     })
 
-    // Update verification notes column (I) if notes provided
+    // Update verification notes column (H) if notes provided
     if (notes) {
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `I${rowNumber}`,
+        range: `H${rowNumber}`,
         valueInputOption: 'RAW',
         requestBody: {
           values: [[`${notes} (Verified: ${verifiedAt})`]],
