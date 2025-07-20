@@ -28,7 +28,8 @@ import {
   CheckCircle2,
   XCircle,
   BarChart3,
-  Bell
+  Bell,
+  Shield
 } from 'lucide-react'
 import TicketSalesForm from '@/components/TicketSalesForm'
 import PaymentVerification from '@/components/PaymentVerification'
@@ -266,6 +267,14 @@ export default function EnhancedDashboard() {
           >
             <Bell className="h-5 w-5 mr-2" />
             Notifications
+          </button>
+          
+          <button
+            onClick={() => router.push('/event-verification')}
+            className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-2xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <Shield className="h-5 w-5 mr-2" />
+            Event Verification
           </button>
         </div>
 
