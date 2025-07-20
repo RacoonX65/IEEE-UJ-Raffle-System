@@ -1,5 +1,19 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="6" fill="#6366f1"/>
-  <text x="16" y="12" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="white">IEEE</text>
-  <text x="16" y="22" font-family="Arial, sans-serif" font-size="8" font-weight="bold" text-anchor="middle" fill="white">UJ</text>
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#grad)"/>
+  
+  <!-- White border for contrast -->
+  <rect x="1" y="1" width="30" height="30" rx="7" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  
+  <!-- IEEE text -->
+  <text x="16" y="13" font-family="Arial, sans-serif" font-size="9" font-weight="900" text-anchor="middle" fill="white" stroke="rgba(0,0,0,0.3)" stroke-width="0.5">IEEE</text>
+  
+  <!-- UJ text -->
+  <text x="16" y="24" font-family="Arial, sans-serif" font-size="9" font-weight="900" text-anchor="middle" fill="white" stroke="rgba(0,0,0,0.3)" stroke-width="0.5">UJ</text>
 </svg>
