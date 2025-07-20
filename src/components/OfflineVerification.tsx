@@ -10,7 +10,7 @@ import {
   Wifi, 
   WifiOff,
   Database,
-  Sync
+  RefreshCw
 } from 'lucide-react'
 
 interface TicketEntry {
@@ -246,7 +246,7 @@ export default function OfflineVerification({ onVerify }: OfflineVerificationPro
             disabled={!isOnline || pendingVerifications.length === 0}
             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center"
           >
-            <Sync className="h-5 w-5 mr-2" />
+            <RefreshCw className="h-5 w-5 mr-2" />
             Sync ({pendingVerifications.length})
           </button>
         </div>
