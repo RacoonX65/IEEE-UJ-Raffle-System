@@ -30,8 +30,7 @@ export async function POST(request: NextRequest) {
           ticketNumber,
           paymentMethod,
           sellerName,
-          sellerEmail,
-          ticketPrice
+          sellerEmail
         } = data
 
         const confirmationResult = await sendTicketConfirmation(
@@ -57,8 +56,7 @@ export async function POST(request: NextRequest) {
           ticketNumber: reminderTicketNumber,
           sellerName: reminderSellerName,
           sellerEmail: reminderSellerEmail,
-          daysSincePurchase,
-          ticketPrice: reminderTicketPrice
+          daysSincePurchase
         } = data
 
         const reminderResult = await sendPaymentReminder(
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
