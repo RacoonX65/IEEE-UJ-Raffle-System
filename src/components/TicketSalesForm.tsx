@@ -12,7 +12,7 @@ interface TicketSalesFormProps {
 interface TicketFormData {
   name: string
   email: string
-  whatsapp: string
+  // whatsapp: string // Removed - email-only system
   paymentMethod: string
   seller: string
   ticketPrice: number
@@ -22,7 +22,7 @@ export default function TicketSalesForm({ isOpen, onClose, onTicketSold }: Ticke
   const [formData, setFormData] = useState<TicketFormData>({
     name: '',
     email: '',
-    whatsapp: '',
+    // whatsapp: '', // Removed - email-only system
     paymentMethod: 'Cash',
     seller: '',
     ticketPrice: 50
@@ -64,7 +64,7 @@ export default function TicketSalesForm({ isOpen, onClose, onTicketSold }: Ticke
           setFormData({
             name: '',
             email: '',
-            whatsapp: '',
+            // whatsapp: '', // Removed - email-only system
             paymentMethod: 'Cash',
             seller: '',
             ticketPrice: 50
@@ -149,22 +149,7 @@ export default function TicketSalesForm({ isOpen, onClose, onTicketSold }: Ticke
                 />
               </div>
 
-              {/* WhatsApp */}
-              <div>
-                <label className="block text-sm font-medium text-purple-200 mb-2">
-                  <Phone className="inline h-4 w-4 mr-1" />
-                  WhatsApp Number
-                </label>
-                <input
-                  type="tel"
-                  name="whatsapp"
-                  value={formData.whatsapp}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="+27123456789"
-                />
-              </div>
+              {/* WhatsApp field removed - email-only notification system */}
 
               {/* Payment Method */}
               <div>

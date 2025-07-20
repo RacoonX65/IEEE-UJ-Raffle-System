@@ -33,7 +33,7 @@ interface TicketEntry {
 interface NotificationTemplate {
   id: string
   name: string
-  type: 'email' | 'whatsapp' | 'both'
+  type: 'email'
   variables: string[]
 }
 
@@ -94,7 +94,7 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           timestamp: '',
           name: `Custom ${index + 1}`,
           email: contact.includes('@') ? contact.trim() : '',
-          whatsapp: !contact.includes('@') ? contact.trim() : '',
+          whatsapp: '', // WhatsApp removed - email-only system
           paymentMethod: '',
           seller: '',
           ticketNumber: '',
@@ -120,7 +120,7 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
       const recipientData = recipientList.map(ticket => ({
         name: ticket.name,
         email: ticket.email,
-        whatsapp: ticket.whatsapp,
+        // whatsapp: ticket.whatsapp, // WhatsApp removed - email-only system
         ticketNumber: ticket.ticketNumber
       }))
 
@@ -481,12 +481,8 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-lg font-semibold text-white">{template.name}</h4>
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                          template.type === 'email' ? 'bg-blue-600/20 text-blue-300' :
-                          template.type === 'whatsapp' ? 'bg-green-600/20 text-green-300' :
-                          'bg-purple-600/20 text-purple-300'
-                        }`}>
-                          {template.type === 'both' ? 'Email + WhatsApp' : template.type}
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-600/20 text-blue-300">
+                          Email
                         </span>
                       </div>
                     </div>
