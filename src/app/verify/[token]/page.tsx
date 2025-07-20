@@ -195,7 +195,7 @@ export default function VerifyTicketPage() {
               <div className="bg-white/5 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-3">Need Help?</h3>
                 <div className="space-y-2 text-purple-200">
-                  <p>• Ensure you're scanning the correct QR code from your ticket</p>
+                  <p>• Ensure you&apos;re scanning the correct QR code from your ticket</p>
                   <p>• Check that your ticket was purchased through official channels</p>
                   <p>• Contact IEEE UJ support if you believe this is an error</p>
                 </div>
