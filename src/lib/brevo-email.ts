@@ -2,11 +2,11 @@ import * as Brevo from '@getbrevo/brevo';
 
 // Initialize Brevo API client
 const apiInstance = new Brevo.TransactionalEmailsApi();
-let apiKey = Brevo.ApiClient.instance.authentications['api-key'];
 
 // Set the API key from environment variable
 if (process.env.BREVO_API_KEY) {
-  apiKey.apiKey = process.env.BREVO_API_KEY;
+  // Cast to any to access protected property in TypeScript
+  (apiInstance as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
 } else {
   console.warn('BREVO_API_KEY is not set. Email functionality will not work.');
 }
@@ -121,7 +121,7 @@ export function generateTicketPurchaseEmail(ticket: TicketDetails) {
           <p style="margin:0;">Please bring exact cash payment to one of the following:</p>
           <ul style="margin-top:8px;">
             <li>Any IEEE UJ committee member</li>
-            <li>The IEEE UJ office at UJ APK Campus, John Orr Building, Room 4312</li>
+            <li>The IEEE UJ office at UJ DFC Campus, John Orr Building, Room 4312</li>
             <li>Designated payment points during IEEE UJ events</li>
           </ul>
           <p style="margin-top:10px;"><strong>Payment deadline:</strong> At least 24 hours before the event</p>
