@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { 
   Bell, 
   Send, 
@@ -28,6 +29,7 @@ interface TicketEntry {
   ticketNumber: string
   paymentStatus?: string
   verificationNotes?: string
+  ticketPrice?: string // Add optional ticketPrice property
 }
 
 interface NotificationTemplate {
@@ -44,6 +46,9 @@ interface NotificationCenterProps {
 }
 
 export default function NotificationCenter({ tickets, isOpen, onClose }: NotificationCenterProps) {
+  // Get current user session data
+  const { data: session } = useSession()
+  
   const [activeTab, setActiveTab] = useState<'send' | 'templates' | 'history' | 'settings'>('send')
   const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
@@ -126,12 +131,15 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
 
       // Get current user/seller information from session if available
       const currentUser = {
-        name: 'IEEE UJ Team', // Default fallback
-        email: 'ieee.uj@gmail.com' // Default fallback
+        name: session?.user?.name || 'IEEE UJ Team', // Use session data or fallback
+        email: session?.user?.email || 'ieee.uj@gmail.com' // Use session data or fallback
       };
+      
+      console.log('Current user from session:', session?.user);
 
       // Define template variables interface to include all possible properties
       interface TemplateVariables {
+        
         // Event information
         eventName: string;
         eventDate: string;
@@ -169,13 +177,28 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
         [key: string]: string | undefined; // Allow any string property
       }
       
-      // Get common variables needed for all templates
+      // Get current date for calculations
+      const currentDate = new Date();
+      
+      // Format dates properly
+      const formatDate = (date: Date): string => {
+        return date.toLocaleDateString('en-ZA', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      };
+      
+      // Calculate event and draw dates (use next month's 15th as a default)
+      const eventDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15);
+      
+      // Get common variables needed for all templates with real-time data
       const commonVariables: TemplateVariables = {
         // Event information
         eventName: 'IEEE UJ Raffle',
-        eventDate: 'TBA',
+        eventDate: formatDate(eventDate),
         eventLocation: 'University of Johannesburg',
-        drawDate: 'TBA',
+        drawDate: formatDate(eventDate),
         
         // Ticket information
         ticketPrice: '50',
@@ -186,7 +209,7 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
         updateTitle: notificationSubject || 'IEEE UJ Raffle Update',
         updateContent: notificationMessage,
         
-        // Seller information (current user)
+        // Seller information (current user from session)
         sellerName: currentUser.name,
         sellerEmail: currentUser.email,
         
@@ -198,9 +221,9 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
         branchCode: '250841',
         reference: 'TICKET-NUMBER',
         
-        // Dates
-        purchaseDate: new Date().toLocaleDateString(),
-        daysSincePurchase: '3'
+        // Dates - use real dates
+        purchaseDate: formatDate(currentDate),
+        daysSincePurchase: '3' // Default for bulk notifications
       };
       
       // Add template-specific variables based on selected template
@@ -285,8 +308,29 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           (new Date().getTime() - new Date(ticket.timestamp).getTime()) / (1000 * 60 * 60 * 24)
         )
 
-        // Get seller email from the system or use default
-        const sellerEmail = 'ieee.uj@gmail.com'; // Default fallback
+        // Get seller information from the current user's session
+        const sellerName = session?.user?.name || ticket.seller || 'IEEE UJ Team';
+        const sellerEmail = session?.user?.email || 'ieee.uj@gmail.com'; // Use logged-in user's email
+        
+        console.log('Using seller information from session:', { sellerName, sellerEmail });
+        
+        // Get current date for calculations
+        const currentDate = new Date();
+        const purchaseDate = new Date(ticket.timestamp);
+        const dueDate = new Date(purchaseDate.getTime() + 10 * 24 * 60 * 60 * 1000); // 10 days after purchase
+        
+        // Format dates properly
+        const formatDate = (date: Date): string => {
+          return date.toLocaleDateString('en-ZA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        };
+        
+        // Calculate actual ticket price (use real data if available)
+        // Using the updated TicketEntry interface that includes ticketPrice
+        const ticketPrice = ticket.ticketPrice || '50';
         
         // Create comprehensive payment reminder data with all required variables
         const paymentReminderData = {
@@ -296,34 +340,34 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           
           // Ticket information
           ticketNumber: ticket.ticketNumber,
-          ticketPrice: '50',
+          ticketPrice: ticketPrice,
           
-          // Seller information
-          sellerName: ticket.seller || 'IEEE UJ Team',
+          // Seller information - use session data (current logged-in user)
+          sellerName: sellerName,
           sellerEmail: sellerEmail,
           
-          // Payment information
-          paymentMethod: 'EFT',
+          // Payment information - use real bank details
+          paymentMethod: ticket.paymentMethod || 'EFT',
           accountHolder: 'MR MQHELOMHLE N MTHUNZI',
           accountNumber: '62042909185',
           bankName: 'First National Bank (FNB)',
           branchCode: '250841',
           reference: ticket.ticketNumber,
           
-          // Dates and timing
+          // Dates and timing - use real calculated dates
           daysSincePurchase: daysSince.toString(),
-          purchaseDate: new Date(ticket.timestamp).toLocaleDateString(),
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          purchaseDate: formatDate(purchaseDate),
+          dueDate: formatDate(dueDate),
           
           // Event information
           eventName: 'IEEE UJ Raffle',
-          eventDate: 'TBA',
+          eventDate: formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15)), // Next month's 15th
           eventLocation: 'University of Johannesburg',
-          drawDate: 'TBA',
+          drawDate: formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 15)), // Same as event date
           
           // Amount information
-          amount: '50',
-          amountDue: '50'
+          amount: ticketPrice,
+          amountDue: ticketPrice
         };
         
         console.log(`Sending payment reminder for ticket ${ticket.ticketNumber} with variables:`, paymentReminderData);
