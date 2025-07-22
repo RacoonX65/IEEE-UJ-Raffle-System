@@ -124,6 +124,107 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
         ticketNumber: ticket.ticketNumber
       }))
 
+      // Get current user/seller information from session if available
+      const currentUser = {
+        name: 'IEEE UJ Team', // Default fallback
+        email: 'ieee.uj@gmail.com' // Default fallback
+      };
+
+      // Define template variables interface to include all possible properties
+      interface TemplateVariables {
+        // Event information
+        eventName: string;
+        eventDate: string;
+        eventLocation: string;
+        drawDate: string;
+        
+        // Ticket information
+        ticketPrice: string;
+        totalTickets: string;
+        prizeName: string;
+        
+        // Email content
+        updateTitle: string;
+        updateContent: string;
+        
+        // Seller information
+        sellerName: string;
+        sellerEmail: string;
+        
+        // Payment information
+        paymentMethod: string;
+        accountHolder: string;
+        accountNumber: string;
+        bankName: string;
+        branchCode: string;
+        reference: string;
+        
+        // Dates
+        purchaseDate: string;
+        daysSincePurchase: string;
+        
+        // Optional properties for specific templates
+        dueDate?: string;
+        confirmationCode?: string;
+        [key: string]: string | undefined; // Allow any string property
+      }
+      
+      // Get common variables needed for all templates
+      const commonVariables: TemplateVariables = {
+        // Event information
+        eventName: 'IEEE UJ Raffle',
+        eventDate: 'TBA',
+        eventLocation: 'University of Johannesburg',
+        drawDate: 'TBA',
+        
+        // Ticket information
+        ticketPrice: '50',
+        totalTickets: tickets.length.toString(),
+        prizeName: 'IEEE UJ Raffle Prize',
+        
+        // Email content
+        updateTitle: notificationSubject || 'IEEE UJ Raffle Update',
+        updateContent: notificationMessage,
+        
+        // Seller information (current user)
+        sellerName: currentUser.name,
+        sellerEmail: currentUser.email,
+        
+        // Payment information
+        paymentMethod: 'EFT',
+        accountHolder: 'MR MQHELOMHLE N MTHUNZI',
+        accountNumber: '62042909185',
+        bankName: 'First National Bank (FNB)',
+        branchCode: '250841',
+        reference: 'TICKET-NUMBER',
+        
+        // Dates
+        purchaseDate: new Date().toLocaleDateString(),
+        daysSincePurchase: '3'
+      };
+      
+      // Add template-specific variables based on selected template
+      let templateVariables = {...commonVariables};
+      
+      if (selectedTemplate === 'payment_reminder') {
+        console.log('Adding payment reminder specific variables');
+        // Add payment reminder specific variables
+        templateVariables = {
+          ...templateVariables,
+          daysSincePurchase: '3',
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        };
+      } else if (selectedTemplate === 'ticket_confirmation') {
+        console.log('Adding ticket confirmation specific variables');
+        // Add ticket confirmation specific variables
+        templateVariables = {
+          ...templateVariables,
+          confirmationCode: 'CONF-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+        };
+      }
+      
+      console.log('Sending notification with template variables:', templateVariables);
+
       const response = await fetch('/api/notifications/send', {
         method: 'POST',
         headers: {
@@ -134,23 +235,11 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           data: selectedTemplate ? {
             template: selectedTemplate,
             recipients: recipientData,
-            variables: {
-              updateTitle: notificationSubject,
-              updateContent: notificationMessage,
-              drawDate: 'TBA',
-              totalTickets: tickets.length.toString(),
-              prizeName: 'IEEE UJ Raffle Prize'
-            }
+            variables: templateVariables
           } : {
             template: 'bulk_update',
             recipients: recipientData,
-            variables: {
-              updateTitle: notificationSubject || 'IEEE UJ Raffle Update',
-              updateContent: notificationMessage,
-              drawDate: 'TBA',
-              totalTickets: tickets.length.toString(),
-              prizeName: 'IEEE UJ Raffle Prize'
-            }
+            variables: templateVariables
           }
         }),
       })
@@ -196,6 +285,49 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           (new Date().getTime() - new Date(ticket.timestamp).getTime()) / (1000 * 60 * 60 * 24)
         )
 
+        // Get seller email from the system or use default
+        const sellerEmail = 'ieee.uj@gmail.com'; // Default fallback
+        
+        // Create comprehensive payment reminder data with all required variables
+        const paymentReminderData = {
+          // Buyer information
+          buyerName: ticket.name,
+          buyerEmail: ticket.email,
+          
+          // Ticket information
+          ticketNumber: ticket.ticketNumber,
+          ticketPrice: '50',
+          
+          // Seller information
+          sellerName: ticket.seller || 'IEEE UJ Team',
+          sellerEmail: sellerEmail,
+          
+          // Payment information
+          paymentMethod: 'EFT',
+          accountHolder: 'MR MQHELOMHLE N MTHUNZI',
+          accountNumber: '62042909185',
+          bankName: 'First National Bank (FNB)',
+          branchCode: '250841',
+          reference: ticket.ticketNumber,
+          
+          // Dates and timing
+          daysSincePurchase: daysSince.toString(),
+          purchaseDate: new Date(ticket.timestamp).toLocaleDateString(),
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          
+          // Event information
+          eventName: 'IEEE UJ Raffle',
+          eventDate: 'TBA',
+          eventLocation: 'University of Johannesburg',
+          drawDate: 'TBA',
+          
+          // Amount information
+          amount: '50',
+          amountDue: '50'
+        };
+        
+        console.log(`Sending payment reminder for ticket ${ticket.ticketNumber} with variables:`, paymentReminderData);
+        
         const response = await fetch('/api/notifications/send', {
           method: 'POST',
           headers: {
@@ -203,15 +335,7 @@ export default function NotificationCenter({ tickets, isOpen, onClose }: Notific
           },
           body: JSON.stringify({
             type: 'payment_reminder',
-            data: {
-              buyerName: ticket.name,
-              buyerEmail: ticket.email,
-              buyerWhatsApp: ticket.whatsapp,
-              ticketNumber: ticket.ticketNumber,
-              sellerName: ticket.seller,
-              daysSincePurchase: daysSince,
-              ticketPrice: 50
-            }
+            data: paymentReminderData
           }),
         })
 

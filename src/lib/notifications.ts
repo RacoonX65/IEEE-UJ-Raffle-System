@@ -208,6 +208,8 @@ export function initializeEmailService(): Brevo.TransactionalEmailsApi | null {
 
   try {
     if (!apiInstance) {
+      console.log('Initializing Brevo API client with key:', process.env.BREVO_API_KEY?.substring(0, 5) + '...');
+      
       // Initialize Brevo API client
       apiInstance = new Brevo.TransactionalEmailsApi();
       
@@ -215,6 +217,8 @@ export function initializeEmailService(): Brevo.TransactionalEmailsApi | null {
       // Cast to any to access protected property in TypeScript
       // This is the official pattern recommended in Brevo documentation
       (apiInstance as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
+      
+      console.log('Brevo API client initialized successfully');
     }
     
     return apiInstance;
@@ -235,18 +239,24 @@ export async function sendEmailNotification(
   to: string,
   subject: string,
   content: string,
-  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>
+  attachments?: { filename: string; content: Buffer; contentType: string }[]
 ): Promise<boolean> {
   try {
+    // Initialize API client if not already initialized
     if (!apiInstance) {
-      apiInstance = initializeEmailService()
+      apiInstance = initializeEmailService();
     }
-
+    
+    // Check if API client is initialized
     if (!apiInstance) {
-      console.error('Brevo API client not available')
-      return false
+      console.error('Brevo API client not initialized - check BREVO_API_KEY environment variable');
+      return false;
     }
-
+    
+    // Log the email content for debugging
+    console.log('Sending email with subject:', subject);
+    console.log('Email content:', content);
+    
     // Create email sending request
     const sendSmtpEmail = new Brevo.SendSmtpEmail();
     
@@ -264,7 +274,15 @@ export async function sendEmailNotification(
     
     // Set content
     sendSmtpEmail.subject = subject;
-    sendSmtpEmail.htmlContent = content.replace(/\n/g, '<br>');
+    
+    // Convert markdown-style formatting to HTML
+    let htmlContent = content
+      .replace(/\n/g, '<br>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/•/g, '&bull;');
+      
+    sendSmtpEmail.htmlContent = htmlContent;
     
     // Set plain text content by stripping HTML tags
     sendSmtpEmail.textContent = content.replace(/<[^>]*>/g, '');
@@ -297,10 +315,25 @@ export function replaceTemplateVariables(
 ): string {
   let result = template
 
+  // Log variables for debugging
+  console.log('Template variables available:', Object.keys(variables));
+  console.log('Template before replacement:', template.substring(0, 100) + '...');
+  
   // Simple variable replacement
   Object.entries(variables).forEach(([key, value]) => {
-    const regex = new RegExp(`{{${key}}}`, 'g')
-    result = result.replace(regex, value)
+    if (value === undefined || value === null) {
+      console.warn(`Warning: Variable ${key} has null/undefined value`);
+      return;
+    }
+    
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    const valueStr = String(value); // Ensure value is a string
+    result = result.replace(regex, valueStr);
+    
+    // Check if replacement happened
+    if (template.includes(`{{${key}}}`) && !result.includes(`{{${key}}}}`)) {
+      console.log(`Replaced {{${key}}} with: ${valueStr.substring(0, 30)}${valueStr.length > 30 ? '...' : ''}`);
+    }
   })
 
   // Handle conditional blocks (basic implementation)
@@ -309,7 +342,14 @@ export function replaceTemplateVariables(
     const conditionValue = variables[condition.trim()]
     return conditionValue && conditionValue !== 'false' ? content : ''
   })
+  
+  // Check for any remaining unreplaced variables
+  const remainingVars = result.match(/{{[^{}]+}}/g);
+  if (remainingVars && remainingVars.length > 0) {
+    console.warn('Unreplaced variables in template:', remainingVars);
+  }
 
+  console.log('Template after replacement (first 100 chars):', result.substring(0, 100) + '...');
   return result
 }
 
@@ -324,27 +364,63 @@ export async function sendNotification(data: NotificationData): Promise<{
   emailResults: boolean[]
   errors: string[]
 }> {
+  // Get template
   const template = getTemplate(data.template)
   if (!template) {
     return {
       success: false,
       emailResults: [],
-      errors: ['Template not found']
+      errors: [`Template ${data.template} not found`]
     }
   }
 
   const emailResults: boolean[] = []
   const errors: string[] = []
 
+  // Initialize email service if not already initialized
+  if (!apiInstance) {
+    apiInstance = initializeEmailService();
+    if (!apiInstance) {
+      return {
+        success: false,
+        emailResults: [],
+        errors: ['Failed to initialize email service - check BREVO_API_KEY environment variable']
+      };
+    }
+  }
+
   for (const recipient of data.recipients) {
     try {
-      const personalizedVariables = {
-        ...data.variables,
-        recipientName: recipient.name,
-        buyerName: recipient.name,
-        winnerName: recipient.name,
-        sellerName: recipient.name
+      if (!recipient.email) {
+        console.error('Recipient email is missing');
+        errors.push(`Recipient email is missing for ${recipient.name}`);
+        emailResults.push(false);
+        continue;
       }
+
+      // Create personalized variables without overriding existing ones
+      const personalizedVariables: Record<string, string> = {};
+      
+      // Copy all existing variables
+      Object.entries(data.variables).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          personalizedVariables[key] = String(value);
+        }
+      });
+      
+      // Add recipient-specific variables with fallbacks
+      personalizedVariables.recipientName = personalizedVariables.recipientName || recipient.name || '';
+      personalizedVariables.buyerName = personalizedVariables.buyerName || recipient.name || '';
+      personalizedVariables.winnerName = personalizedVariables.winnerName || recipient.name || '';
+      personalizedVariables.sellerName = personalizedVariables.sellerName || '';
+      
+      // Add ticketNumber from recipient if available
+      if (recipient.ticketNumber) {
+        personalizedVariables.ticketNumber = recipient.ticketNumber;
+      }
+      
+      // Log the final variables being used for this recipient
+      console.log(`Preparing notification for ${recipient.email} with variables:`, personalizedVariables);
 
       const subject = replaceTemplateVariables(template.subject, personalizedVariables)
       const content = replaceTemplateVariables(template.content, personalizedVariables)
@@ -410,6 +486,41 @@ export async function sendPaymentReminder(
   daysSincePurchase: number,
   ticketPrice: number = 50
 ): Promise<boolean> {
+  // Log the variables being sent to help with debugging
+  console.log('Sending payment reminder with variables:', {
+    buyerName,
+    buyerEmail,
+    ticketNumber,
+    sellerName,
+    sellerEmail,
+    daysSincePurchase,
+    ticketPrice
+  });
+  
+  // Ensure all template variables are explicitly set
+  const variables = {
+    // Required variables for payment_reminder template
+    buyerName,
+    ticketNumber,
+    ticketPrice: ticketPrice.toString(),
+    daysSincePurchase: daysSincePurchase.toString(),
+    sellerName,
+    sellerEmail,
+    // Additional variables that might be referenced in the template
+    purchaseDate: new Date(Date.now() - daysSincePurchase * 24 * 60 * 60 * 1000).toLocaleDateString(),
+    // Ensure these are explicitly set to prevent undefined values
+    recipientName: buyerName,
+    email: buyerEmail,
+    // Set default values for any other variables that might be used
+    drawDate: 'TBA',
+    paymentMethod: 'EFT',
+    // Add reference to the template for debugging
+    _template: 'payment_reminder'
+  };
+  
+  // Log the complete set of variables
+  console.log('Complete set of variables for payment reminder:', variables);
+  
   const result = await sendNotification({
     template: 'payment_reminder',
     recipients: [{
@@ -417,13 +528,7 @@ export async function sendPaymentReminder(
       email: buyerEmail,
       ticketNumber
     }],
-    variables: {
-      ticketNumber,
-      ticketPrice: ticketPrice.toString(),
-      daysSincePurchase: daysSincePurchase.toString(),
-      sellerName,
-      sellerEmail
-    },
+    variables,
     priority: 'medium'
   })
 
