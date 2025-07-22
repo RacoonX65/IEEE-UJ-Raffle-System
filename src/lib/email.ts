@@ -20,7 +20,8 @@ try {
   apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 } catch (error) {
   console.error('Failed to initialize Brevo API:', error);
-  apiInstance = new SibApiV3Sdk.TransactionalEmailsApi(); // Create anyway to avoid TypeScript errors
+  // Create anyway to avoid TypeScript errors
+  apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 }
 
 // Default sender email - can be any email, Brevo doesn't require domain verification

@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import * as Brevo from '@getbrevo/brevo'
 
 export interface NotificationTemplate {
   id: string
@@ -197,29 +197,40 @@ IEEE UJ Team`,
   }
 ]
 
-// Email service configuration
-let emailTransporter: nodemailer.Transporter | null = null
+// Brevo API client initialization
+let apiInstance: Brevo.TransactionalEmailsApi | null = null;
 
-export function initializeEmailService() {
-  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('Email service not configured. Email notifications will be disabled.')
-    return null
+export function initializeEmailService(): Brevo.TransactionalEmailsApi | null {
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('BREVO_API_KEY not configured. Email notifications will be disabled.');
+    return null;
   }
 
-  emailTransporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  })
-
-  return emailTransporter
+  try {
+    if (!apiInstance) {
+      // Initialize Brevo API client
+      apiInstance = new Brevo.TransactionalEmailsApi();
+      
+      // Set the API key from environment variable
+      // Cast to any to access protected property in TypeScript
+      // This is the official pattern recommended in Brevo documentation
+      (apiInstance as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
+    }
+    
+    return apiInstance;
+  } catch (error) {
+    console.error('Failed to initialize Brevo API:', error);
+    return null;
+  }
 }
 
-// Send email notification
+// Default sender email - can be overridden with environment variables
+const DEFAULT_FROM = {
+  email: process.env.EMAIL_FROM_ADDRESS || 'noreply@ieee-uj.org',
+  name: process.env.EMAIL_FROM_NAME || 'IEEE UJ Raffle System'
+};
+
+// Send email notification using Brevo
 export async function sendEmailNotification(
   to: string,
   subject: string,
@@ -227,29 +238,53 @@ export async function sendEmailNotification(
   attachments?: Array<{ filename: string; content: Buffer; contentType: string }>
 ): Promise<boolean> {
   try {
-    if (!emailTransporter) {
-      emailTransporter = initializeEmailService()
+    if (!apiInstance) {
+      apiInstance = initializeEmailService()
     }
 
-    if (!emailTransporter) {
-      console.error('Email service not available')
+    if (!apiInstance) {
+      console.error('Brevo API client not available')
       return false
     }
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to,
-      subject,
-      html: content.replace(/\n/g, '<br>'),
-      attachments: attachments || []
+    // Create email sending request
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    
+    // Set sender
+    sendSmtpEmail.sender = {
+      name: DEFAULT_FROM.name,
+      email: DEFAULT_FROM.email
+    };
+    
+    // Set recipient(s)
+    sendSmtpEmail.to = [{
+      email: to,
+      name: to.split('@')[0] // Use part before @ as name
+    }];
+    
+    // Set content
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = content.replace(/\n/g, '<br>');
+    
+    // Set plain text content by stripping HTML tags
+    sendSmtpEmail.textContent = content.replace(/<[^>]*>/g, '');
+    
+    // Add attachments if provided
+    if (attachments && attachments.length > 0) {
+      sendSmtpEmail.attachment = attachments.map(attachment => ({
+        name: attachment.filename,
+        content: attachment.content.toString('base64'),
+        type: attachment.contentType
+      }));
     }
-
-    const result = await emailTransporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', result.messageId)
-    return true
+    
+    // Send the email
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('Email sent successfully via Brevo:', data.body && data.body.messageId);
+    return true;
   } catch (error) {
-    console.error('Failed to send email:', error)
-    return false
+    console.error('Failed to send email via Brevo:', error);
+    return false;
   }
 }
 
