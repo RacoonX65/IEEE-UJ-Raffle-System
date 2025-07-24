@@ -972,7 +972,6 @@ export const NOTIFICATION_TEMPLATES: NotificationTemplate[] = [
 </html>`,
     type: 'email',
     variables: ['buyerName', 'ticketNumber', 'purchaseDate', 'paymentMethod', 'sellerName', 'sellerEmail', 'ticketPrice', 'drawDate', 'daysToDueDate', 'dueDate', 'accountHolder', 'bankName', 'accountNumber', 'branchCode', 'reference']
-    variables: ['buyerName', 'ticketNumber', 'ticketPrice', 'daysSincePurchase', 'sellerName', 'sellerEmail', 'purchaseDate', 'dueDate']
   },
   {
     id: 'winner_announcement',
